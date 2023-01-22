@@ -34,4 +34,5 @@ jobs:
       with:
         tag: "latest"
         message: "Latest release"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}        
         
