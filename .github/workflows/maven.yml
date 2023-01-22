@@ -24,9 +24,12 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
     - uses: actions/checkout@v3
-    - uses: rickstaa/action-create-tag@v1
-      with:
-        tag: "latest"
-        message: "Latest release"
-        repo-token: ${{ secrets.GITHUB_TOKEN }}        
+    - name: Configure Git user
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+    - name: Publish JAR
+      run: ./mvnw -B release:prepare release:perform
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
