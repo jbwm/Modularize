@@ -27,6 +27,9 @@ Enhanced plugin development. Split your plugin into flexible modules.
 ```
 ## Usage
 
+Register module manager on plugin startup
+![image](https://user-images.githubusercontent.com/53827110/215810667-4aadff2d-b61b-4eb4-9ff6-dfdaf3fd5356.png)
+
 
 **@Module** annotation register class as Module.
 
@@ -69,3 +72,6 @@ Reloading all modules at once.
 ![image](https://user-images.githubusercontent.com/53827110/214068162-f608f07c-698f-47de-95ec-606e2a568717.png)
 
 **Note**: Reloading also affect default config.yml -> If you disabled specific module in config.yml change will be affected, and module enabled/disabled.
+
+## Code samples
+Code samples are available in example directory in project
