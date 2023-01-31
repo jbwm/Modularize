@@ -1,0 +1,4 @@
+name: ApiTest
+version: '${project.version}'
+main: pl.koral.apitest.ApiTest
+api-version: 1.19
