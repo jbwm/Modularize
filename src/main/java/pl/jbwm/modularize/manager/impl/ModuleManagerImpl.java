@@ -12,12 +12,14 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import pl.jbwm.modularize.Modularize;
 import pl.jbwm.modularize.annotation.Command;
 import pl.jbwm.modularize.annotation.Listen;
 import pl.jbwm.modularize.annotation.Module;
 import pl.jbwm.modularize.manager.Initializable;
 import pl.jbwm.modularize.manager.ModuleManager;
 import pl.jbwm.modularize.manager.Reloadable;
+import pl.jbwm.modularize.manager.listener.ListenerManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,11 +42,14 @@ public class ModuleManagerImpl implements ModuleManager {
 
     private Set<Object> initializedClasses = new HashSet<>();
 
+    private final ListenerManager listenerManager;
 
-    public ModuleManagerImpl(JavaPlugin plugin, Set<Class<?>> classes) {
+
+    public ModuleManagerImpl(JavaPlugin plugin, Set<Class<?>> classes, ListenerManager listenerManager) {
         this.plugin = plugin;
         this.log = plugin.getLogger();
         this.classes = classes;
+        this.listenerManager = listenerManager;
 
         ModuleManagement moduleManagement = new ModuleManagement(plugin, this);
         registerCommand(moduleManagement);
@@ -74,6 +79,8 @@ public class ModuleManagerImpl implements ModuleManager {
         for (var clazz : classes) {
             try {
                 Object instance = this.getInstance(clazz);
+                listenerManager.callPostReflectListener(instance);
+
 
                 initializedClasses.add(instance);
 
