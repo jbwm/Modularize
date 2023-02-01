@@ -38,6 +38,8 @@ public class ModuleManagerImpl implements ModuleManager {
 
     private final Set<Class<?>> classes;
 
+    private Set<Object> initializedClasses = new HashSet<>();
+
 
     public ModuleManagerImpl(JavaPlugin plugin, Set<Class<?>> classes) {
         this.plugin = plugin;
@@ -72,6 +74,9 @@ public class ModuleManagerImpl implements ModuleManager {
         for (var clazz : classes) {
             try {
                 Object instance = this.getInstance(clazz);
+
+                initializedClasses.add(instance);
+
                 if(instance instanceof Initializable initializable)
                     initializable.init();
 
@@ -100,12 +105,20 @@ public class ModuleManagerImpl implements ModuleManager {
 
     @Override
     public void reloadModule(String name) {
+
+
+        Object toReinitialize = null;
+
+
         Listener listener = listeners.keySet().stream().map(listeners::get)
                 .filter(l -> l.getClass().isAnnotationPresent(Module.class) && l.getClass().getAnnotation(Module.class).name().equals(name))
                 .findFirst()
                 .orElse(null);
 
         if (listener != null) {
+            toReinitialize = listener;
+            initializedClasses.remove(listener);
+
             unregisterListener(listener);
             listeners.remove(listener.getClass().getName());
         }
@@ -116,11 +129,16 @@ public class ModuleManagerImpl implements ModuleManager {
                 .orElse(null);
 
         if (command != null) {
+            toReinitialize = command;
+            initializedClasses.remove(command);
+
             this.unregisterCommand(commands.get(command.getClass().getName()).getValue());
             commands.remove(command.getClass().getName());
         }
 
-        registerAll();
+
+        if(toReinitialize != null)
+            this.registerSingle(toReinitialize);
     }
 
     @Override
@@ -131,6 +149,11 @@ public class ModuleManagerImpl implements ModuleManager {
     @Override
     public Map<String, Pair<TabExecutor, PluginCommand>> getCommands() {
         return commands;
+    }
+
+    @Override
+    public Set<Object> getInitializedClasses() {
+        return initializedClasses;
     }
 
     private Object getInstance(Class<?> clazz) {

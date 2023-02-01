@@ -6,6 +6,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.event.Listener;
 
 import java.util.Map;
+import java.util.Set;
 
 public interface ModuleManager {
 
@@ -36,5 +37,9 @@ public interface ModuleManager {
      */
     Map<String, Pair<TabExecutor, PluginCommand>> getCommands();
 
+    /*
+     * Get classes that are initialized
+     */
+    Set<Object> getInitializedClasses();
 
 }
