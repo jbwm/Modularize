@@ -6,13 +6,17 @@ import pl.jbwm.modularize.annotation.Command;
 import pl.jbwm.modularize.annotation.Listen;
 import pl.jbwm.modularize.manager.ModuleManager;
 import pl.jbwm.modularize.manager.impl.ModuleManagerImpl;
+import pl.jbwm.modularize.manager.listener.ListenerManager;
+import pl.jbwm.modularize.manager.listener.PostReflectListener;
 
 import java.util.Set;
 
 public final class Modularize {
 
+    private final static ListenerManager listenerManager = new ListenerManager();
+
     public static ModuleManager buildManager(JavaPlugin javaPlugin, Set<Class<?>> classes){
-        return new ModuleManagerImpl(javaPlugin, classes);
+        return new ModuleManagerImpl(javaPlugin, classes, listenerManager);
     }
 
     public static Set<Class<?>> scanPackage(String packageName){
@@ -24,5 +28,8 @@ public final class Modularize {
         return allClasses;
     }
 
+    public static void addListener(PostReflectListener postReflectListener){
+        listenerManager.addListener(postReflectListener);
+    }
 
 }
