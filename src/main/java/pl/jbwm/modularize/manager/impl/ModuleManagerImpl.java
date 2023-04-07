@@ -77,20 +77,15 @@ public class ModuleManagerImpl implements ModuleManager {
 
     @Override
     public void registerAll(String... qualifiers) {
-        qualified: for (var clazz : classes) {
+        for (var clazz : classes) {
             try {
 
                 if (clazz.isAnnotationPresent(Qualifier.class)) {
                     String qualifier = clazz.getAnnotation(Qualifier.class).qualifierName();
 
-                    for(String q : qualifiers){
-                        if(qualifier.equals(q)) {
-
-                            continue qualified;
-                        }
+                    if(!Arrays.stream(qualifiers).toList().contains(qualifier))
+                        continue;
                     }
-
-                }
 
                 Object instance = this.getInstance(clazz);
                 listenerManager.callPostReflectListener(instance);
