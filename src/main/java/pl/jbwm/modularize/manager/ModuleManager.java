@@ -14,7 +14,7 @@ public interface ModuleManager {
     /**
      * Register all modules
      */
-    void registerAll();
+    void registerAll(String... qualifiers);
 
     /**
      * Reload specific module by name

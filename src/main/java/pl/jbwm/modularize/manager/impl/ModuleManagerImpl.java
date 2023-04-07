@@ -16,6 +16,7 @@ import pl.jbwm.modularize.Modularize;
 import pl.jbwm.modularize.annotation.Command;
 import pl.jbwm.modularize.annotation.Listen;
 import pl.jbwm.modularize.annotation.Module;
+import pl.jbwm.modularize.annotation.Qualifier;
 import pl.jbwm.modularize.manager.Initializable;
 import pl.jbwm.modularize.manager.ModuleManager;
 import pl.jbwm.modularize.manager.Reloadable;
@@ -75,9 +76,22 @@ public class ModuleManagerImpl implements ModuleManager {
     }
 
     @Override
-    public void registerAll() {
-        for (var clazz : classes) {
+    public void registerAll(String... qualifiers) {
+        qualified: for (var clazz : classes) {
             try {
+
+                if (clazz.isAnnotationPresent(Qualifier.class)) {
+                    String qualifier = clazz.getAnnotation(Qualifier.class).qualifierName();
+
+                    for(String q : qualifiers){
+                        if(qualifier.equals(q)) {
+
+                            continue qualified;
+                        }
+                    }
+
+                }
+
                 Object instance = this.getInstance(clazz);
                 listenerManager.callPostReflectListener(instance);
 
@@ -103,6 +117,7 @@ public class ModuleManagerImpl implements ModuleManager {
             }
         }
     }
+
 
     //TODO:
     @Override
