@@ -21,7 +21,7 @@ Enhanced plugin development. Split your plugin into flexible modules.
     <dependency>
         <groupId>com.github.jedwabnydev</groupId>
         <artifactId>Modularize</artifactId>
-        <version>1.0.2</version>
+        <version>1.1.0</version>
     </dependency>
 </dependencies>
 ```
