@@ -187,6 +187,9 @@ public class ModuleManagerImpl implements ModuleManager {
             return;
 
         var annotation = tabExecutor.getClass().getAnnotation(Command.class);
+        Qualifier qualifier = tabExecutor.getClass().getAnnotation(Qualifier.class);
+        String qualifierInfo = "";
+        if(qualifier != null) qualifierInfo = "with qualifier "+ qualifier.qualifierName()+" ";
 
         if (!isEnabled(tabExecutor.getClass())) tabExecutor = new DisabledExecutor();
 
@@ -196,7 +199,7 @@ public class ModuleManagerImpl implements ModuleManager {
         Bukkit.getServer().getCommandMap().register(plugin.getName(), command);
 
         if (isEnabled(tabExecutor.getClass())) {
-            Bukkit.getConsoleSender().sendMessage(String.format(ChatColor.GRAY + "Registering command " + ChatColor.GOLD + "%s", tabExecutor.getClass().getSimpleName()));
+            Bukkit.getConsoleSender().sendMessage(String.format(ChatColor.GRAY + "Registering command "+qualifierInfo + ChatColor.YELLOW + "%s", tabExecutor.getClass().getSimpleName()));
             commands.put(tabExecutor.getClass().getName(), Pair.of(tabExecutor, command));
         }
 
@@ -231,8 +234,11 @@ public class ModuleManagerImpl implements ModuleManager {
 
     private void registerListener(Listener listener) {
         if (!isEnabled(listener.getClass()) || listeners.containsKey(listener.getClass().getName())) return;
+        Qualifier qualifier = listener.getClass().getAnnotation(Qualifier.class);
+        String qualifierInfo = "";
+        if(qualifier != null) qualifierInfo = "with qualifier "+ qualifier.qualifierName()+" ";
 
-        Bukkit.getConsoleSender().sendMessage(String.format("§7Registering listener §6%s", listener.getClass().getSimpleName()));
+        Bukkit.getConsoleSender().sendMessage(String.format("§7Registering listener "+qualifierInfo+"§6%s", listener.getClass().getSimpleName()));
         getServer().getPluginManager().registerEvents(listener, plugin);
         listeners.put(listener.getClass().getName(), listener);
     }
