@@ -1,4 +1,4 @@
-package pl.jbwm.modularize.docInfo;
+package pl.koral.apitest.myEvents;
 
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;

@@ -35,7 +35,7 @@ public final class Modularize {
      *
      * and your event need to be BEFORE or on PAR with modules package -> "pl.koral.mcskyblockcore.spigot" or "pl.koral.mcskyblockcore.spigot.customEvents"
      *
-     * for event you can look into {@link pl.jbwm.modularize.docInfo.PlayerInteractEvent}
+     * for event you can look into example directory "myEvents"
      *
      * @param javaPlugin - your plugin instance
      * @param classes - modularizedClasses
