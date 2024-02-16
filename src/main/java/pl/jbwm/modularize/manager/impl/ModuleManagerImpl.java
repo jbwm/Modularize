@@ -12,7 +12,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import pl.jbwm.modularize.Modularize;
+import org.jetbrains.annotations.UnknownNullability;
 import pl.jbwm.modularize.annotation.Command;
 import pl.jbwm.modularize.annotation.Listen;
 import pl.jbwm.modularize.annotation.Module;
@@ -20,11 +20,15 @@ import pl.jbwm.modularize.annotation.Qualifier;
 import pl.jbwm.modularize.manager.Initializable;
 import pl.jbwm.modularize.manager.ModuleManager;
 import pl.jbwm.modularize.manager.Reloadable;
+import pl.jbwm.modularize.manager.enums.CheckType;
+import pl.jbwm.modularize.manager.enums.ErrorType;
 import pl.jbwm.modularize.manager.listener.ListenerManager;
 
+import javax.annotation.CheckForNull;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -41,9 +45,18 @@ public class ModuleManagerImpl implements ModuleManager {
 
     private final Set<Class<?>> classes;
 
-    private Set<Object> initializedClasses = new HashSet<>();
+    private final Set<Object> initializedClasses = new HashSet<>();
 
     private final ListenerManager listenerManager;
+
+    @UnknownNullability
+    private String[] disabledClasses;
+
+    @UnknownNullability
+    private CheckType checkType;
+
+    @UnknownNullability
+    private ErrorType errorType;
 
 
     public ModuleManagerImpl(JavaPlugin plugin, Set<Class<?>> classes, ListenerManager listenerManager) {
@@ -51,18 +64,31 @@ public class ModuleManagerImpl implements ModuleManager {
         this.log = plugin.getLogger();
         this.classes = classes;
         this.listenerManager = listenerManager;
+        createModuleManagement();
+    }
 
+    public ModuleManagerImpl(JavaPlugin plugin, Set<Class<?>> classes, ListenerManager listenerManager, CheckType checkType, ErrorType errorType, String... disabledClasses) {
+        this.plugin = plugin;
+        this.log = plugin.getLogger();
+        this.classes = classes;
+        this.listenerManager = listenerManager;
+        this.checkType = checkType;
+        this.disabledClasses = disabledClasses;
+        this.errorType = errorType;
+        createModuleManagement();
+    }
+
+    private void createModuleManagement() {
         ModuleManagement moduleManagement = new ModuleManagement(plugin, this);
         registerCommand(moduleManagement);
 
-        if(!plugin.getDataFolder().exists())
+        if (!plugin.getDataFolder().exists())
             plugin.getDataFolder().mkdir();
-
 
 
         File configFile = new File(plugin.getDataFolder() + "/config.yml");
 
-        if(!configFile.exists()) {
+        if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
 
@@ -83,9 +109,9 @@ public class ModuleManagerImpl implements ModuleManager {
                 if (clazz.isAnnotationPresent(Qualifier.class)) {
                     String qualifier = clazz.getAnnotation(Qualifier.class).qualifierName();
 
-                    if(!Arrays.stream(qualifiers).toList().contains(qualifier))
+                    if (!Arrays.stream(qualifiers).toList().contains(qualifier))
                         continue;
-                    }
+                }
 
                 Object instance = this.getInstance(clazz);
                 listenerManager.callPostReflectListener(instance);
@@ -93,7 +119,7 @@ public class ModuleManagerImpl implements ModuleManager {
 
                 initializedClasses.add(instance);
 
-                if(instance instanceof Initializable initializable)
+                if (instance instanceof Initializable initializable)
                     initializable.init();
 
                 if (clazz.isAnnotationPresent(Listen.class) && clazz.isAnnotationPresent(Command.class)) {
@@ -154,7 +180,7 @@ public class ModuleManagerImpl implements ModuleManager {
         }
 
 
-        if(toReinitialize != null)
+        if (toReinitialize != null)
             this.registerSingle(toReinitialize);
     }
 
@@ -189,7 +215,7 @@ public class ModuleManagerImpl implements ModuleManager {
         var annotation = tabExecutor.getClass().getAnnotation(Command.class);
         Qualifier qualifier = tabExecutor.getClass().getAnnotation(Qualifier.class);
         String qualifierInfo = "";
-        if(qualifier != null) qualifierInfo = "with qualifier "+ qualifier.qualifierName()+" ";
+        if (qualifier != null) qualifierInfo = "with qualifier " + qualifier.qualifierName() + " ";
 
         if (!isEnabled(tabExecutor.getClass())) tabExecutor = new DisabledExecutor();
 
@@ -199,7 +225,7 @@ public class ModuleManagerImpl implements ModuleManager {
         Bukkit.getServer().getCommandMap().register(plugin.getName(), command);
 
         if (isEnabled(tabExecutor.getClass())) {
-            Bukkit.getConsoleSender().sendMessage(String.format(ChatColor.GRAY + "Registering command "+qualifierInfo + ChatColor.YELLOW + "%s", tabExecutor.getClass().getSimpleName()));
+            Bukkit.getConsoleSender().sendMessage(String.format(ChatColor.GRAY + "Registering command " + qualifierInfo + ChatColor.YELLOW + "%s", tabExecutor.getClass().getSimpleName()));
             commands.put(tabExecutor.getClass().getName(), Pair.of(tabExecutor, command));
         }
 
@@ -217,7 +243,7 @@ public class ModuleManagerImpl implements ModuleManager {
             cmd.setExecutor(tabexecutor);
             cmd.setTabCompleter(tabexecutor);
 
-            if(!permissionMessage.isEmpty())
+            if (!permissionMessage.isEmpty())
                 cmd.setPermissionMessage(permissionMessage);
             else
                 cmd.setPermissionMessage(ChatColor.RED + "You don't have permissions to execute that command!");
@@ -236,12 +262,42 @@ public class ModuleManagerImpl implements ModuleManager {
         if (!isEnabled(listener.getClass()) || listeners.containsKey(listener.getClass().getName())) return;
         Qualifier qualifier = listener.getClass().getAnnotation(Qualifier.class);
         String qualifierInfo = "";
-        if(qualifier != null) qualifierInfo = "with qualifier "+ qualifier.qualifierName()+" ";
+        if (qualifier != null) qualifierInfo = "with qualifier " + qualifier.qualifierName() + " ";
 
-        Bukkit.getConsoleSender().sendMessage(String.format("§7Registering listener "+qualifierInfo+"§6%s", listener.getClass().getSimpleName()));
+        if (checkType != null) {
+            Class<? extends Listener> listenerClass = listener.getClass();
+            Method[] methods = listenerClass.getDeclaredMethods();
+            for (Method method : methods) {
+                for (Class<?> parameterType : method.getParameterTypes()) {
+                    for (String disabledClass : disabledClasses) {
+                        assert disabledClass != null;
+                        boolean isTrue = false;
+                        switch (checkType){
+                            case EQUALS -> {
+                                if (disabledClass.equals(parameterType.getCanonicalName())) isTrue = true;
+                            }
+                            case CONTAINS -> {
+                                if (parameterType.getCanonicalName().contains(disabledClass)) isTrue = true;
+                            }
+                        }
+                        if (isTrue) {
+                            switch (Objects.requireNonNull(errorType)) {
+                                case INFO -> Bukkit.getConsoleSender().sendMessage(String.format("§cIn Class §6%s §cfound " + disabledClass + " !", listener.getClass().getSimpleName()));
+                                case RUN_TIME_EXCEPTION -> {
+                                    throw new RuntimeException(String.format("§cIn Class §6%s §cfound " + disabledClass + " !", listener.getClass().getSimpleName()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Bukkit.getConsoleSender().sendMessage(String.format("§7Registering listener " + qualifierInfo + "§6%s", listener.getClass().getSimpleName()));
         getServer().getPluginManager().registerEvents(listener, plugin);
         listeners.put(listener.getClass().getName(), listener);
     }
+
+
 
     private void unregisterCommand(PluginCommand command) {
         Bukkit.getConsoleSender().sendMessage(String.format("§7unregistering command §6%s", command.getClass().getSimpleName()));
@@ -274,25 +330,25 @@ public class ModuleManagerImpl implements ModuleManager {
         return true;
     }
 
-    private void registerSingle(Object instance){
-            try {
-                if(instance instanceof Initializable initializable)
-                    initializable.init();
+    private void registerSingle(Object instance) {
+        try {
+            if (instance instanceof Initializable initializable)
+                initializable.init();
 
-                if (instance.getClass().isAnnotationPresent(Listen.class) && instance.getClass().isAnnotationPresent(Command.class)) {
-                    registerCommand((TabExecutor) instance);
-                    registerListener((Listener) instance);
+            if (instance.getClass().isAnnotationPresent(Listen.class) && instance.getClass().isAnnotationPresent(Command.class)) {
+                registerCommand((TabExecutor) instance);
+                registerListener((Listener) instance);
 
-                } else if (instance.getClass().isAnnotationPresent(Command.class)) registerCommand((TabExecutor) instance);
-                else if (instance.getClass().isAnnotationPresent(Listen.class)) registerListener((Listener) instance);
+            } else if (instance.getClass().isAnnotationPresent(Command.class)) registerCommand((TabExecutor) instance);
+            else if (instance.getClass().isAnnotationPresent(Listen.class)) registerListener((Listener) instance);
 
 
-                if (instance instanceof Reloadable managed)
-                    managed.reload();
-            } catch (Exception e) {
-                log.warning("Error occured during initiation of class: " + instance.getClass().getName());
-                e.printStackTrace();
-            }
+            if (instance instanceof Reloadable managed)
+                managed.reload();
+        } catch (Exception e) {
+            log.warning("Error occured during initiation of class: " + instance.getClass().getName());
+            e.printStackTrace();
+        }
 
     }
 
