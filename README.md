@@ -19,7 +19,7 @@ Enhanced plugin development. Split your plugin into flexible modules.
 <!-- Dependency-->
 <dependencies>
     <dependency>
-        <groupId>com.github.jedwabnydev</groupId>
+        <groupId>com.github.jbwm</groupId>
         <artifactId>Modularize</artifactId>
         <version>1.3.0</version>
     </dependency>
