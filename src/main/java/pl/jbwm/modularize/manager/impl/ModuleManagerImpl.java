@@ -13,10 +13,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
+import pl.jbwm.modularize.Modularize;
 import pl.jbwm.modularize.annotation.Command;
 import pl.jbwm.modularize.annotation.Listen;
 import pl.jbwm.modularize.annotation.Module;
 import pl.jbwm.modularize.annotation.Qualifier;
+import pl.jbwm.modularize.manager.Healthy;
 import pl.jbwm.modularize.manager.Initializable;
 import pl.jbwm.modularize.manager.ModuleManager;
 import pl.jbwm.modularize.manager.Reloadable;
@@ -24,7 +26,6 @@ import pl.jbwm.modularize.manager.enums.CheckType;
 import pl.jbwm.modularize.manager.enums.ErrorType;
 import pl.jbwm.modularize.manager.listener.ListenerManager;
 
-import javax.annotation.CheckForNull;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -44,6 +45,7 @@ public class ModuleManagerImpl implements ModuleManager {
     private final JavaPlugin plugin;
 
     private final Set<Class<?>> classes;
+    private final Set<Healthy> healthyClasses = new HashSet<>();
 
     private final Set<Object> initializedClasses = new HashSet<>();
 
@@ -121,6 +123,10 @@ public class ModuleManagerImpl implements ModuleManager {
 
                 if (instance instanceof Initializable initializable)
                     initializable.init();
+
+                if(instance instanceof Healthy healthy){
+                    healthyClasses.add(healthy);
+                }
 
                 if (clazz.isAnnotationPresent(Listen.class) && clazz.isAnnotationPresent(Command.class)) {
                     registerCommand((TabExecutor) instance);
@@ -363,6 +369,48 @@ public class ModuleManagerImpl implements ModuleManager {
         @Override
         public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, org.bukkit.command.Command command, @NotNull String alias, @NotNull String[] args) {
             return null;
+        }
+    }
+
+    private final Queue<Double> tpsHistory = new LinkedList<>();
+    private int HISTORY_SIZE = 30; // 30 seconds of history
+    private double TPS_THRESHOLD = 19.5;
+    public static boolean emergencyMode = false;
+    public void initializeHealthMonitor(){
+        initializeHealthMonitor(30 * 20L,10,19.0,60 * 20L);
+    }
+
+    public void initializeHealthMonitor(long checkInterval,int historySize,double TPStreshold, long startDelay){
+        this.HISTORY_SIZE = historySize;
+        this.TPS_THRESHOLD = TPStreshold;
+        if(healthyClasses.isEmpty()){
+            log.warning("Error occured during initiation of health monitor, HealthyClasses are empty! Are You initialized Health monitor before registerAll?");
+        }
+
+        Bukkit.getScheduler().runTaskTimer(plugin, this::checkServerHealth, startDelay, checkInterval);
+
+    }
+    private void checkServerHealth() {
+        double currentTPS = Bukkit.getTPS()[0];
+        tpsHistory.offer(currentTPS);
+
+        if (tpsHistory.size() > HISTORY_SIZE) {
+            tpsHistory.poll();
+        }
+
+        if (tpsHistory.size() == HISTORY_SIZE) {
+            double averageTPS = tpsHistory.stream().mapToDouble(Double::doubleValue).average().orElse(20.0);
+
+            if (averageTPS < TPS_THRESHOLD && !emergencyMode) {
+                emergencyMode = true;
+                log.warning("Server TPS is below threshold! :( (" + averageTPS + " < " + TPS_THRESHOLD + ") ");
+                healthyClasses.forEach(Healthy::ifUnhealthy);
+
+            } else if (averageTPS >= TPS_THRESHOLD && emergencyMode) {
+                log.info("Server TPS is above threshold! :) (" + averageTPS + " >= " + TPS_THRESHOLD + ") ");
+                healthyClasses.forEach(Healthy::ifBackToHealth);
+                emergencyMode = false;
+            }
         }
     }
 
