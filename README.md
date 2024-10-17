@@ -44,6 +44,9 @@ In this example you block the use of PlayerInteractEvent (as EQUALS - class name
 
 This only works for classes that are modularized, which means you can easily use this event (in this case) before pl.koral.apitest.module for example in pl.koral.apitest.myEvents where you will call your own events such as PlayerClickedBlockEvent - then you no longer have to check in each separate InteractEvent whether the block is null, whether it uses one hand, and whether it is a pressure plate
 
+![modulemanager](https://github.com/user-attachments/assets/143f06da-7ad7-43cc-9e20-861a18d1b2df)
+
+
 **@Module** annotation register class as Module.
 
 **@Listen** annotation automatically register class as Listener.
@@ -67,6 +70,10 @@ Use interface reloadable on class, if you want to do something when module is re
 
 ### Healthy
 Use interface healthy on class, if you want to do something when server is unhealthy
+
+![moduleHealthy](https://github.com/user-attachments/assets/d84e7a03-b4b7-435f-bc82-19c5e1ccfab8)
+
+
 (To use this interface, you need to first initialize health monitor)
 ```
 moduleManager.registerAll();
