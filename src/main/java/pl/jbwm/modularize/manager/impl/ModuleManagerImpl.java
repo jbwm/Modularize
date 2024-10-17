@@ -376,10 +376,12 @@ public class ModuleManagerImpl implements ModuleManager {
     private int HISTORY_SIZE = 30; // 30 seconds of history
     private double TPS_THRESHOLD = 19.5;
     public static boolean emergencyMode = false;
+
+    @Override
     public void initializeHealthMonitor(){
         initializeHealthMonitor(30 * 20L,10,19.0,60 * 20L);
     }
-
+    @Override
     public void initializeHealthMonitor(long checkInterval,int historySize,double TPStreshold, long startDelay){
         this.HISTORY_SIZE = historySize;
         this.TPS_THRESHOLD = TPStreshold;
