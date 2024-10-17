@@ -17,22 +17,59 @@ public final class ApiTest extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        //Get all classes under apitest.module
-        Set<Class<?>> modularizedClasses = Modularize.scanPackage("pl.koral.apitest.module");
+        //Here's example for simple use
+        {
+            //Get all classes under apitest.module
+            Set<Class<?>> modularizedClasses = Modularize.scanPackage("pl.koral.apitest.module");
 
-        //Build module manager
-        ModuleManager moduleManager = Modularize.buildManager(this, modularizedClasses);
-        //Register all modules
-        moduleManager.registerAll();
+            //Build module manager
+            ModuleManager moduleManager = Modularize.buildManager(this, modularizedClasses);
+            //Register all modules
+            moduleManager.registerAll();
 
-        //Create Guice AbstractModule
-        Injector injector = new SimpleBinderModule(this).createInjector();
+            //If you are not a fan of dependency injection, you don't have to use it
+            //Create Guice AbstractModule
+            Injector injector = new SimpleBinderModule(this).createInjector();
 
-        //Make classes capable of guice eco system.
-        modularizedClasses.forEach(injector::injectMembers);
+            //Make classes capable of guice eco system.
+            modularizedClasses.forEach(injector::injectMembers);
 
 
-        injectedTestClass.proofDependencyInjectionWorks();
+            injectedTestClass.proofDependencyInjectionWorks();
+        }
+        //End of example
+
+        //Here's example for Modularize with blocked classes as paramenter
+        {
+            //Get all classes under apitest.module
+            Set<Class<?>> modularizedClasses = Modularize.scanPackage("pl.koral.apitest.myEvents.gameplay");
+
+            //Build module manager with blocked classes
+            //So now, if somebody use PlayerInteractEvent in this project a RunTimeException will be thrown when the plugin starts blocking the plugin from launching ()
+            //for further information look in package pl.jbwm.modularize#buildManager;
+            ModuleManager moduleManager = Modularize.buildManager(this,classes,CheckType.EQUALS,ErrorType.RUN_TIME_EXCEPTION,"org.bukkit.event.player.PlayerInteractEvent");
+
+            //Register all modules
+            moduleManager.registerAll();
+
+            //Heres example for health monitor
+            {
+                moduleManager.initializeHealthMonitor(30 * 20L,10,19.0,60 * 20L);
+                //Goto HealthyTest.java for use example
+            }
+
+
+            //If you are not a fan of dependency injection, you don't have to use it
+            //Create Guice AbstractModule
+            Injector injector = new SimpleBinderModule(this).createInjector();
+
+            //Make classes capable of guice eco system.
+            modularizedClasses.forEach(injector::injectMembers);
+
+
+            injectedTestClass.proofDependencyInjectionWorks();
+        }
+        //End of example
 
 
     }
