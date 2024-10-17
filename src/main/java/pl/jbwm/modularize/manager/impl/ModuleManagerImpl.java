@@ -389,7 +389,7 @@ public class ModuleManagerImpl implements ModuleManager {
             log.warning("Error occured during initiation of health monitor, HealthyClasses are empty! Are You initialized Health monitor before registerAll?");
         }
 
-        Bukkit.getScheduler().runTaskTimer(plugin, this::checkServerHealth, startDelay, checkInterval);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::checkServerHealth, startDelay, checkInterval);
 
     }
     private void checkServerHealth() {
