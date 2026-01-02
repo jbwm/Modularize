@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static org.bukkit.Bukkit.getServer;
@@ -109,9 +110,24 @@ public class ModuleManagerImpl implements ModuleManager {
             try {
 
                 if (clazz.isAnnotationPresent(Qualifier.class)) {
-                    String qualifier = clazz.getAnnotation(Qualifier.class).qualifierName();
-
-                    if (!Arrays.stream(qualifiers).toList().contains(qualifier))
+                    Qualifier qualifierAnnotation = clazz.getAnnotation(Qualifier.class);
+                    String singleQualifier = qualifierAnnotation.qualifierName();
+                    String[] multipleQualifiers = qualifierAnnotation.qualifierNames();
+                    
+                    List<String> qualifierList = Arrays.stream(qualifiers).toList();
+                    boolean qualifierMatches = false;
+                    
+                    // If qualifierName is not empty, check it
+                    if (!singleQualifier.isEmpty()) {
+                        qualifierMatches = qualifierList.contains(singleQualifier);
+                    }
+                    
+                    // If qualifierName is empty and qualifierNames is not empty, check only qualifierNames
+                    if (singleQualifier.isEmpty() && multipleQualifiers.length > 0) {
+                        qualifierMatches = Arrays.stream(multipleQualifiers).anyMatch(qualifierList::contains);
+                    }
+                    
+                    if (!qualifierMatches)
                         continue;
                 }
 
@@ -221,7 +237,23 @@ public class ModuleManagerImpl implements ModuleManager {
         var annotation = tabExecutor.getClass().getAnnotation(Command.class);
         Qualifier qualifier = tabExecutor.getClass().getAnnotation(Qualifier.class);
         String qualifierInfo = "";
-        if (qualifier != null) qualifierInfo = "with qualifier " + qualifier.qualifierName() + " ";
+        if (qualifier != null) {
+            List<String> allQualifiers = new ArrayList<>();
+            
+            // Add qualifierName only if it's not empty
+            if (!qualifier.qualifierName().isEmpty()) {
+                allQualifiers.add(qualifier.qualifierName());
+            }
+            
+            // Add qualifierNames if they exist
+            if (qualifier.qualifierNames().length > 0) {
+                allQualifiers.addAll(Arrays.asList(qualifier.qualifierNames()));
+            }
+            
+            if (!allQualifiers.isEmpty()) {
+                qualifierInfo = "with qualifiers " + String.join(", ", allQualifiers) + " ";
+            }
+        }
 
         if (!isEnabled(tabExecutor.getClass())) tabExecutor = new DisabledExecutor();
 
@@ -268,7 +300,23 @@ public class ModuleManagerImpl implements ModuleManager {
         if (!isEnabled(listener.getClass()) || listeners.containsKey(listener.getClass().getName())) return;
         Qualifier qualifier = listener.getClass().getAnnotation(Qualifier.class);
         String qualifierInfo = "";
-        if (qualifier != null) qualifierInfo = "with qualifier " + qualifier.qualifierName() + " ";
+        if (qualifier != null) {
+            List<String> allQualifiers = new ArrayList<>();
+            
+            // Add qualifierName only if it's not empty
+            if (!qualifier.qualifierName().isEmpty()) {
+                allQualifiers.add(qualifier.qualifierName());
+            }
+            
+            // Add qualifierNames if they exist
+            if (qualifier.qualifierNames().length > 0) {
+                allQualifiers.addAll(Arrays.asList(qualifier.qualifierNames()));
+            }
+            
+            if (!allQualifiers.isEmpty()) {
+                qualifierInfo = "with qualifiers " + String.join(", ", allQualifiers) + " ";
+            }
+        }
 
         if (checkType != null) {
             Class<? extends Listener> listenerClass = listener.getClass();

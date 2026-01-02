@@ -9,6 +9,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Qualifier {
 
-    String qualifierName();
+    String qualifierName() default "";
+
+    String[] qualifierNames() default {};
 
 }
